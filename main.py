@@ -26,7 +26,7 @@ Straight:
     Ace can't be low and high
     Ranked by the highest ranking card
 Three of a kind:
-    Three cards of one trank and two kickers
+    Three cards of one rank and two kickers
     Ranked by the rank of the triplet, then the highest kicker, then the lowest kicker
 Two Pair:
     Two cards of one rank, two cards of another rank, and a kicker
@@ -343,27 +343,53 @@ def threeKind(cards):
             return True
     return False
 
+@check
+def twoPair(cards):
+    c=[card[1] for card in cards]
+    pair1,pair2=False,False
+    for card1 in c:
+        amount=0
+        for card2 in c:
+            if card1==card2:
+                amount+=1
+        if amount >= 2:
+            pair1=card1
+    for card1 in c:
+        if card1 == pair1:
+            continue
+        amount=0
+        for card2 in c:
+            if card2 == pair1:
+                continue
+            if card1 == card2:
+                amount+=1
+        if amount >= 2:
+            pair2=card1
+    if pair1 is not False and pair2 is not False:
+        return True
+    return False
+
+@check
+def onePair(cards):
+    c=[card[1] for card in cards]
+    for card1 in c:
+        amount=0
+        for card2 in c:
+            if card1==card2:
+                amount+=1
+        if amount >= 2:
+            return True
+    return False
+
 print(
-    threeKind(
+    twoPair(
         [
             ["S","2"],
-            ["C","3"],
-            ["S","K"],
-            ["S","K"],
+            ["C","K"],
+            ["H","K"],
+            ["D","K"],
             ["S","2"]
         ]
     )
 )
 
-
-'''
-Two Pair:
-    Two cards of one rank, two cards of another rank, and a kicker
-    Ranked by the rank of the highest pair, then the lowest pair, then the kicker
-One Pair:
-    Two cards of one rank, three kickers
-    Ranked by the rank of the pair, then the highest to lowest kickers
-High Card/Nothing:
-    Does not fall into any other category
-    Ranked by the highest ranking card, then the second highest, and so on
-'''
