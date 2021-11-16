@@ -60,9 +60,7 @@ def getCards():
     cards=["A","2","3","4","5","6","7","8","9","10","J","Q","K"]
     for suit in suits:
         for card in cards:
-            deck.append([suit,card])
-    deck.append(["JOKER"])
-    deck.append(["JOKER"])
+            deck.append([card,suit])
     return deck
 
 def check(fn):
@@ -74,21 +72,6 @@ def check(fn):
         return fn(*a,**kwa)
     return wrapper
 
-def noJoker(fn):
-    def wrapper(*a,**kwa):
-        if ["JOKER"] in a[0]:
-            return False
-        return fn(*a,**kwa)
-    return wrapper
-
-def sort(fn):
-    def wrapper(*a,**kwa):
-        if type(a[0])==list:
-            a=list(a)
-            a[0]=sortDeck(a[0])
-        return fn(*a,**kwa)
-    return wrapper
-
 def sortDeck(cards):
     for i in range(len(cards)):
         cards[i]=getCardNumericValue(cards[i])
@@ -97,34 +80,27 @@ def sortDeck(cards):
         cards[i]=getCardProperValue(cards[i])
     return cards
 
-def getCardNumericValue(card,joker=True):
-    if card[0] == "JOKER":
-        if joker:
-            return ["ZJOKER"]
-        else:
-            return [99]
-    if card[1] == "A":
-         return [card[0],14]
-    if card[1] == "J":
-         return [card[0],11]
-    if card[1] == "Q":
-         return [card[0],12]
-    if card[1] == "K":
-         return [card[0],13]
-    return [card[0],int(card[1])]
+def getCardNumericValue(card):
+    if card[0] == "A":
+         return [14,card[1]]
+    if card[0] == "J":
+         return [11,card[1]]
+    if card[0] == "Q":
+         return [12,card[1]]
+    if card[0] == "K":
+         return [13,card[1]]
+    return [int(card[0]),card[1]]
 
 def getCardProperValue(card):
-    if card[0] == "ZJOKER" or card[0] == 99:
-        return ["JOKER"]
-    if card[1] == 14:
-         return [card[0],"A"]
-    if card[1] == 11:
-         return [card[0],"J"]
-    if card[1] == 12:
-         return [card[0],"Q"]
-    if card[1] == 13:
-         return [card[0],"K"]
-    return [card[0],str(card[1])]
+    if card[0] == 14:
+         return ["A",card[1]]
+    if card[0] == 11:
+         return ["J",card[1]]
+    if card[0] == 12:
+         return ["Q",card[1]]
+    if card[0] == 13:
+         return ["K",card[1]]
+    return [str(card[0]),card[1]]
 
 def checkValid(card="",cards=[]):
     validCards=getCards()
@@ -141,20 +117,46 @@ def checkValid(card="",cards=[]):
         raise Exception("No input given to checkValid function")
 
 def sameSuit(cards):
-    suit=cards[0][0]
+    suit=cards[0][1]
     for card in cards:
-        if card[0]!=suit:
+        if card[1]!=suit:
             return False
     return True
 
 def sameRank(cards):
-    rank=cards[0][1]
+    rank=cards[0][0]
     for card in cards:
-        if card[1]!=rank:
+        if card[0]!=rank:
             return False
     return True
 
-@noJoker
+def interperet(file):
+    rows=[]
+    with open(file,"r") as f:
+        
+
+        for r in f:
+            x = (r.strip("\n")).split(" ")
+            rows.append(x)
+
+    for i in range(len(rows)):
+        for j in range(len(rows[i])):
+            rows[i][j]=[rows[i][j][0],rows[i][j][1],]
+ 
+    for i in range(len(rows)):
+        for j in range(len(rows[i])):
+            if rows[i][j][0] == "T":
+                rows[i][j][0] = "10"
+
+
+    newrows=[]
+    for row in rows:
+        h1=row[:5]
+        h2=row[5:10]
+        newrows.append([h1,h2])
+    
+    return newrows
+
 @check
 def royalFlush(cards):
     # define the correct ranks
@@ -163,7 +165,7 @@ def royalFlush(cards):
     itera=0
     # check cards match the possible cards
     for card in sorted(cards):
-        if card[1] != possible[itera]: # if its not a correct card
+        if card[0] != possible[itera]: # if its not a correct card
             return False
         itera+=1
     if not sameSuit(cards):
@@ -173,61 +175,16 @@ def royalFlush(cards):
 @check
 def fiveKind(cards):
     cards=sorted(cards)
-    # if there is not a joker, or if there is more than one joker
-    if not(["JOKER"] in cards):
-        return False
-    c=cards
-    c.remove(["JOKER"])
-    if ["JOKER"] in c:
-        return False
     if not sameRank(cards):
         return False
     return True
 
-@noJoker
 @check
 def straightFlush(cards):  
-    if not sameSuit(cards):
-        return False
-    cards=sortDeck(cards)
-    for i in range(len(cards)):
-        cards[i]=getCardNumericValue(cards[i],joker=False)
-    start=cards[0][1]
-    for card in cards:
-        if card[1] != start:
-            return False
-        start+=1
-    return True
+    return straight(cards) and flush(cards)
 
 @check
 def fourKind(cards):
-    @check
-    def fourKindJoker(cards):
-        card1=cards[0]
-        if not("JOKER" in card1):
-            card2=["JOKER"]
-        c=cards
-        c.remove(["JOKER"])
-        for card in c:
-            if card==["JOKER"]:
-                return False
-        c.remove(card1)
-        card1counter=1
-        card2counter=1
-        for card in cards:
-            if card[1] != card1[1]:
-                if card[1] != card2[1]:
-                    return False
-                else:
-                    card2counter+=1
-            else:
-                card1counter+=1
-        if 4 not in [card1counter,card2counter]:
-            return False
-        return True
-
-    if ["JOKER"] in cards:
-        return fourKindJoker(cards)
     card1=cards[0]
     itera=1
     card2=cards[itera]
@@ -254,35 +211,8 @@ def fourKind(cards):
         return False
     return True
 
-
-
 @check
 def fullHouse(cards):
-    @check
-    def fullHouseJoker(cards):
-        jokers=cards.count(["JOKER"])
-        if jokers > 3:
-            return False
-        if jokers == 3:
-            for i in range(3):
-                cards.remove(["JOKER"])
-            card1=cards[0]
-            for card in cards:
-                if card[1] != card1[1]:
-                    return False
-        if jokers < 2:
-            return False
-        if jokers == 2:
-            for i in range(2):
-                cards.remove(["JOKER"])
-            card1=cards[0]
-            for card in cards:
-                if card[1] != card1[1]:
-                    return False
-        return True
-
-    if ["JOKER"] in cards:
-        return fullHouseJoker(cards)
     card1=cards[0]
     itera=1
     card2=cards[itera]
@@ -309,24 +239,22 @@ def fullHouse(cards):
         return False
     return True
 
-@noJoker
 @check
 def flush(cards):
     if sameSuit(cards):
         return True
     return False
 
-@noJoker
 @check
 def straight(cards):
     cards=[getCardNumericValue(c) for c in cards]
-    c=[x[1] for x in cards]
+    c=[x[0] for x in cards]
     c.sort()
     start=c[0]
     if start == 14:
         start=1
     for card in c[1:]:
-        if card-1 is not start:
+        if card is not start+1:
             return False
         start+=1
     return True
@@ -381,15 +309,127 @@ def onePair(cards):
             return True
     return False
 
-print(
-    twoPair(
-        [
-            ["S","2"],
-            ["C","K"],
-            ["H","K"],
-            ["D","K"],
-            ["S","2"]
-        ]
-    )
-)
 
+def getDeckType(deck):
+    itera=0
+    for command in commands:
+        if command(deck.copy()) == True:
+            return itera
+        itera+=1
+    return itera
+
+def calcWin(hand1,hand2):
+    #print(hand1,hand2)
+    if getDeckType(hand1) == getDeckType(hand2):
+        deckType=getDeckType(hand1)
+    return True
+
+commands=[royalFlush,fiveKind,straightFlush,fourKind,fullHouse,flush,straight,threeKind,twoPair,onePair]
+
+def royalFlushScore(cards):
+    return False
+
+def fiveKindScore(cards):
+    pass
+
+def straightFlushScore():
+    pass
+
+def fourKindScore():
+    pass
+
+def fullHouseScore():
+    pass
+
+def flushScore():
+    pass
+
+def straightScore():
+    pass
+
+def threeKindScore():
+    pass
+
+def twoPairScore():
+    pass
+
+def onePairScore():
+    pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+"""
+
+Five of a kind:
+    four cards of one rank and one wildcard
+    the higher the card the higher the points
+    ranks above straight flush
+Straight flush:
+    five cards of sequential rank in the same suit
+    ranks above four of a kind
+    Ace can't be low and high
+Four of a kind:
+    four cards of one rank and a kicker (card of another rank)
+    When drawn, the higher rank of the four cards wins
+    When drawn on the rank of the four cards, the rank of the kicker wins
+Full House:
+    Three cards of one rank, two of another rank
+    Win decided by rank of the triplet, then rank of the pair
+Flush:
+    Five cards of the same suit, not all of sequential rank
+    Ranked by the rank of the highest card, then going down respictivley
+Straight:
+    Five cards of sequential rank, not all of the same suit
+    Ace can't be low and high
+    Ranked by the highest ranking card
+Three of a kind:
+    Three cards of one rank and two kickers
+    Ranked by the rank of the triplet, then the highest kicker, then the lowest kicker
+Two Pair:
+    Two cards of one rank, two cards of another rank, and a kicker
+    Ranked by the rank of the highest pair, then the lowest pair, then the kicker
+One Pair:
+    Two cards of one rank, three kickers
+    Ranked by the rank of the pair, then the highest to lowest kickers
+High Card/Nothing:
+    Does not fall into any other category
+    Ranked by the highest ranking card, then the second highest, and so on
+    """
+
+detectioncommands=[royalFlushScore,fiveKindScore,straightFlushScore,fourKindScore,fullHouseScore,flushScore,straightScore,threeKindScore,twoPairScore,onePairScore]
+
+commandNames=["royalFlush","fiveKind","straightFlush","fourKind","fullHouse","flush","straight","threeKind","twoPair","onePair"]
+
+
+
+decks=interperet("p054_poker.txt")
+
+for game in decks:
+    print(calcWin(game[0],game[1]))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    #break
