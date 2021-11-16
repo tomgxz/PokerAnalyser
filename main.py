@@ -38,21 +38,6 @@ High Card/Nothing:
     Does not fall into any other category
     Ranked by the highest ranking card, then the second highest, and so on
 '''
-from enum import Enum
-
-class Hands(Enum):
-    royalflush=0,
-    fiveofakind=1,
-    straightflush=2,
-    fourofakind=3,
-    fullhouse=4,
-    flush=5,
-    straight=6,
-    threeofakind=7,
-    twopair=8,
-    onepair=9,
-    highcard=10,
-
 
 def getCards():
     deck=[]
@@ -156,28 +141,6 @@ def interperet(file):
         newrows.append([h1,h2])
     
     return newrows
-
-@check
-def royalFlush(cards):
-    # define the correct ranks
-    possible=[10,11,12,13,14]
-    cards=[getCardNumericValue(card) for card in cards]
-    itera=0
-    # check cards match the possible cards
-    for card in sorted(cards):
-        if card[0] != possible[itera]: # if its not a correct card
-            return False
-        itera+=1
-    if not sameSuit(cards):
-        return False
-    return True
-
-@check
-def fiveKind(cards):
-    cards=sorted(cards)
-    if not sameRank(cards):
-        return False
-    return True
 
 @check
 def straightFlush(cards):  
@@ -318,97 +281,156 @@ def getDeckType(deck):
         itera+=1
     return itera
 
-def calcWin(hand1,hand2):
-    #print(hand1,hand2)
-    if getDeckType(hand1) == getDeckType(hand2):
-        deckType=getDeckType(hand1)
-    return True
+commands=[straightFlush,fourKind,fullHouse,flush,straight,threeKind,twoPair,onePair]
 
-commands=[royalFlush,fiveKind,straightFlush,fourKind,fullHouse,flush,straight,threeKind,twoPair,onePair]
+def getSortedRanks(cards):
+    cards=[getCardNumericValue(c) for c in cards]
+    cards=[x[0] for x in cards]
+    cards.sort()
+    return cards
 
-def royalFlushScore(cards):
-    return False
+def straightFlushScore(cards):
+    cards=getSortedRanks(cards)
 
-def fiveKindScore(cards):
-    pass
+    for card in enumerate(cards):
+        cards[card[0]] = [card[1],"H"]
+    
+    return [getCardProperValue(cards[-1])[0]]
 
-def straightFlushScore():
-    pass
+def fourKindScore(cards):
+    returnList=[]
+    start=cards[0]
+    added=True
+    for card in cards[1:]:
+        if card[0] == start[0] and added:
+            returnList.insert(0,card[0])
+            added=False
+        elif card[0] != start[0] and not added:
+            returnList.append(card[0])
+    if len(returnList) < 1:
+        returnList.append(start[0])
+        start=cards[-1]
+        for card in cards[:-1]:
+            if card[0] == start[0]:
+                returnList.insert(0,card[0])
+                break
+    return returnList
 
-def fourKindScore():
-    pass
+def fullHouseScore(cards):
+    returnList=[]
 
-def fullHouseScore():
-    pass
+    cards=getSortedRanks(cards)
 
-def flushScore():
-    pass
+    for card in cards:
+        if cards.count(card) == 3:
+            returnList.insert(0,card)
+            break
+    for card in cards:
+        if cards.count(card) == 2:
+            returnList.append(card)
+            break
 
-def straightScore():
-    pass
+    return returnList
 
-def threeKindScore():
-    pass
+def flushScore(cards):
+    cards=getSortedRanks(cards)
+    cards.reverse()
+    return cards
 
-def twoPairScore():
-    pass
+def straightScore(cards):
+    cards=getSortedRanks(cards)
+    cards.reverse()
+    return [cards[0]]
 
-def onePairScore():
-    pass
+def threeKindScore(cards):
+    returnList=[]
+
+    cards=getSortedRanks(cards)
+    cards.reverse()
+
+    for card in cards:
+        if cards.count(card) == 3:
+            returnList.append(card)
+            break
+
+    cards=[x for x in cards if x != card]
+    
+    for card in cards:
+        returnList.append(card)
+    
+    returnList.sort()
+    returnList.reverse()
+
+    return returnList
+
+def twoPairScore(cards):
+    returnList=[]
+
+    cards=getSortedRanks(cards)
+    cards.reverse()
+
+    for card in cards:
+        if cards.count(card) == 2:
+            returnList.append(card)
+            cards=[x for x in cards if x != card]
+    
+    returnList.append(cards[0])
+
+    return returnList
+
+def onePairScore(cards):
+    returnList=[]
+
+    cards=getSortedRanks(cards)
+    cards.reverse()
+
+    for card in cards:
+        if cards.count(card) == 2:
+            returnList.append(card)
+            cards=[x for x in cards if x != card]
+    
+    for card in cards:
+        returnList.append(card)
+
+    return returnList
+
+def highCardScore(cards):
+    cards=getSortedRanks(cards)
+    cards.reverse()
+    return cards
 
 
+detectioncommands=[straightFlushScore,fourKindScore,fullHouseScore,flushScore,straightScore,threeKindScore,twoPairScore,onePairScore,highCardScore]
 
+commandNames=["straightFlush","fourKind","fullHouse","flush","straight","threeKind","twoPair","onePair"]
 
+def calcWin(h1,h2):
+    h1v=getDeckType(h1)
+    h2v=getDeckType(h2)
 
-
-
-
-
-
-
-
-
-"""
-
-Five of a kind:
-    four cards of one rank and one wildcard
-    the higher the card the higher the points
-    ranks above straight flush
-Straight flush:
-    five cards of sequential rank in the same suit
-    ranks above four of a kind
-    Ace can't be low and high
-Four of a kind:
-    four cards of one rank and a kicker (card of another rank)
-    When drawn, the higher rank of the four cards wins
-    When drawn on the rank of the four cards, the rank of the kicker wins
-Full House:
-    Three cards of one rank, two of another rank
-    Win decided by rank of the triplet, then rank of the pair
-Flush:
-    Five cards of the same suit, not all of sequential rank
-    Ranked by the rank of the highest card, then going down respictivley
-Straight:
-    Five cards of sequential rank, not all of the same suit
-    Ace can't be low and high
-    Ranked by the highest ranking card
-Three of a kind:
-    Three cards of one rank and two kickers
-    Ranked by the rank of the triplet, then the highest kicker, then the lowest kicker
-Two Pair:
-    Two cards of one rank, two cards of another rank, and a kicker
-    Ranked by the rank of the highest pair, then the lowest pair, then the kicker
-One Pair:
-    Two cards of one rank, three kickers
-    Ranked by the rank of the pair, then the highest to lowest kickers
-High Card/Nothing:
-    Does not fall into any other category
-    Ranked by the highest ranking card, then the second highest, and so on
-    """
-
-detectioncommands=[royalFlushScore,fiveKindScore,straightFlushScore,fourKindScore,fullHouseScore,flushScore,straightScore,threeKindScore,twoPairScore,onePairScore]
-
-commandNames=["royalFlush","fiveKind","straightFlush","fourKind","fullHouse","flush","straight","threeKind","twoPair","onePair"]
+    if h1v == h2v:
+        h1s=detectioncommands[h1v](h1)
+        h2s=detectioncommands[h2v](h2)
+        for i in range(len(h1s)):
+            try:
+                if h1s[i] > h2s[i]:
+                    return True
+                elif h2s[i] > h1s[i]:
+                    return False
+                else:
+                    continue
+            except IndexError as e:
+                print(commandNames[h1v])
+                print(h1)
+                print(h2)
+                print(h2s, h1s, i)
+                raise SystemExit
+        return None
+    else:
+        if h1v > h2v:
+            return True
+        return False
+    return None
 
 
 
